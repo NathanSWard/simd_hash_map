@@ -12,11 +12,11 @@
 
 ## API as of 22 April 2019 ##
 * Template Parameter
-  * 1)key_type 2)mapped_type 3)hash_function 4)key_equal_function
-  *Note:
-    *value_type is always std::pair<const key_type, mapped_type>
-  *E.g.
-    *simd_hash_map<std::string, int, std::hash<std::string>>
+ * 1)key_type 2)mapped_type 3)hash_function 4)key_equal_function
+ * Note:
+   * value_type is always std::pair<const key_type, mapped_type>
+ * E.g.
+   * simd_hash_map<std::string, int, std::hash<std::string>>
 * Member Functions
   * insert(value_type value)
     *return : iterator to inserted value
@@ -32,7 +32,7 @@
     *return : void
     *clear and resent the map
 
-##Tests##
+## Tests##
 To run tests, compile as follow inside the tests/ director
 
 gcc tests-main.cpp <insert test file here>
