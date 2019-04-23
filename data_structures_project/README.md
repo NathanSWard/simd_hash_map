@@ -25,7 +25,7 @@
    * return : bool is successfully deleted
    * erase key/value pair with given value
  * find(const key_type& key)
-   * return : std::optional<<iterator>>
+   * return : `std::optional<iterator>`
    * find key/value pair with given key
  * clear()
    * return : void
