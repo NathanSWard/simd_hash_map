@@ -3,7 +3,7 @@
 ## REQUIREMENTS TO BUILD: ##
 * c++17
 * Intel Processor with SSE2, SSE3, AVX2, or AVX512 instruction support
-*`#include "path-to/simd_hash_table.hpp"`
+* `#include "path-to/simd_hash_table.hpp"`
 * Example Build:
   * clang++ my_file.cpp -std=c++17 -mavx2
 * See the following for optional x86 compiler flags
