@@ -18,19 +18,19 @@
  * E.g.
    * simd_hash_map<std::string, int, std::hash<std::string>>
 * Member Functions
-  * insert(value_type value)
-    *return : iterator to inserted value
-    *insert value into the map
-    *will replace a value if key is already present
-  * erase(const key_type& key)
-    *return : bool is successfully deleted
-    *erase key/value pair with given value
-  * find(const key_type& key)
-    *return : std::optional<iterator>
-    *find key/value pair with giben key
-  * clear()
-    *return : void
-    *clear and resent the map
+ * insert(value_type value)
+  *return : iterator to inserted value
+  *insert value into the map
+  *will replace a value if key is already present
+ * erase(const key_type& key)
+  *return : bool is successfully deleted
+  *erase key/value pair with given value
+ * find(const key_type& key)
+  *return : std::optional<iterator>
+  *find key/value pair with giben key
+ * clear()
+  *return : void
+  *clear and resent the map
 
 ## Tests##
 To run tests, compile as follow inside the tests/ director
