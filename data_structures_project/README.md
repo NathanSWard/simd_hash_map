@@ -27,7 +27,7 @@
  * `find(const key_type& key)`
    * return : `std::optional<iterator>`
    * find key/value pair with given key
- * clear()
+ * `clear()`
    * return : void
    * clear and reset the map
 
