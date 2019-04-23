@@ -15,16 +15,16 @@
  * 1)key_type 2)mapped_type 3)hash_function 4)key_equal_function
  * Note:
    * only key_type and mapped_type are necessary
-   * value_type is always std::pair<const key_type, mapped_type>
+   * value_type is always `std::pair<const key_type, mapped_type>`
 * Member Functions
- * insert(value_type value)
+ * `insert(value_type value)`
    * return : iterator to inserted value
    * insert value into the map
    * will replace a value if key is already present
- * erase(const key_type& key)
-   * return : bool is successfully deleted
+ * `erase(const key_type& key)`
+   * return : bool if successfully deleted
    * erase key/value pair with given value
- * find(const key_type& key)
+ * `find(const key_type& key)`
    * return : `std::optional<iterator>`
    * find key/value pair with given key
  * clear()
