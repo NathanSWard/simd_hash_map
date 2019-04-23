@@ -1,0 +1,5 @@
+make a namespace
+finishing test simd_hash_table
+performance benchmarking
+test load factor and growth rate
+functions that may throw exceptions (e.g. erase)
