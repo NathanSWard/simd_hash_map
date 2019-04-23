@@ -14,9 +14,8 @@
 * Template Parameter
  * 1)key_type 2)mapped_type 3)hash_function 4)key_equal_function
  * Note:
+   * only key_type and mapped_type are necessary
    * value_type is always std::pair<const key_type, mapped_type>
- * E.g.
-   * simd_hash_map<std::string, int, std::hash<std::string>>
 * Member Functions
  * insert(value_type value)
   *return : iterator to inserted value
