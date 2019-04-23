@@ -31,9 +31,9 @@
    * return : void
    * clear and reset the map
 
-## Tests##
-To run tests, compile as follow inside the tests/ director
+## Tests ##
+To run tests, compile as follow inside the tests/ directory
 
-gcc tests-main.cpp <insert test file here>
+gcc tests-main.cpp "test file"
 
 
