@@ -4,9 +4,6 @@
 #include <cstdint>
 #include <utility>
 
-#include <bitset>
-#include <iostream>
-
 class BitMaskIter64 
 {
 public:
@@ -15,12 +12,6 @@ public:
       (static_cast<uint64_t>(((d << 16) | c)) << 32) | (static_cast<uint64_t>((b << 16) | a))
     }
   {
-    std::cout << "\n4x16 constructor\n";
-    std::cout << "a: " << std::bitset<16>((uint16_t)a) << '\n';
-    std::cout << "b: " << std::bitset<16>((uint16_t)b) << '\n';
-    std::cout << "c: " << std::bitset<16>((uint16_t)c) << '\n';
-    std::cout << "d: " << std::bitset<16>((uint16_t)d) << '\n';
-    std::cout << "bits_ : " << std::bitset<64>(bits_) << "\n\n";
   }
 
   explicit constexpr BitMaskIter64(uint32_t a, uint32_t b) noexcept
@@ -109,16 +100,16 @@ public:
     return (bits_ & 1);
   }
   
-  [[nodiscard]] constexpr auto getFirstUnsetBit() const noexcept 
+  [[nodiscard]] /*constexpr*/ auto getFirstUnsetBit() const noexcept 
   {
     auto bits = bits_;
     if (bits == 0xFFFFFFFFFFFFFFFF)
       return -1;
 
-    auto count = 63;
+    auto count = 0;
     while (bits & 1) {
       bits >>= 1;
-      --count;
+      ++count;
     }
     return count;
   }

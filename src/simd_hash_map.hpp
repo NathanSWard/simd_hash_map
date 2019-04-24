@@ -10,10 +10,6 @@
 #include <tuple>
 #include <memory>
 
-//REMOVE THESE
-#include <bitset>
-#include <iostream>
-
 static constexpr std::size_t get_next_cap(std::size_t cap_minus_one) noexcept
 {
   if (cap_minus_one)
@@ -24,13 +20,13 @@ static constexpr std::size_t get_next_cap(std::size_t cap_minus_one) noexcept
 template<typename T, std::size_t Size>
 struct bucket_group
 {
-  alignas(Size) metadata md_[Size];
+  alignas(64) metadata md_[Size];
   T kv_[Size];
   
   static auto empty_group() noexcept
   {
     static /*constexpr*/ metadata empty_md[] { 
-      mdSentry, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, 
+      mdEmpty,  mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, 
       mdEmpty,  mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
       mdEmpty,  mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
       mdEmpty,  mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
@@ -79,6 +75,7 @@ protected:
   //using group_allocator = typename allocator_traits::template rebind_alloc<group_t>;
   //using group_pointer = typename group_allocator::pointer;
 protected:
+  template<bool Const>
   class Iterator
   {
   public:
@@ -111,12 +108,18 @@ protected:
     constexpr const value_type& operator*() const noexcept 
     {
       return group_->kv_[index_ % GroupSize];
-    }
-    constexpr value_type& operator*() noexcept 
+    } 
+    constexpr std::enable_if_t<!Const, value_type&>
+    operator*() noexcept 
     {
       return group_->kv_[index_ % GroupSize];
     }
-    constexpr value_type* operator->() noexcept 
+    constexpr const value_type* operator->() const noexcept
+    {
+      return group_->kv_ + index_ % GroupSize;
+    }
+    constexpr std::enable_if_t<!Const, value_type*>
+    operator->() noexcept 
     {
       return group_->kv_ + index_ % GroupSize;
     }
@@ -132,8 +135,8 @@ protected:
   };
 
 public:
-  using iterator = Iterator;
-  using const_iterator = const Iterator; //not correct, fix
+  using iterator = Iterator<false>;
+  using const_iterator = Iterator<true>; //not correct, fix
 
   [[nodiscard]] constexpr iterator begin() noexcept
   {
@@ -177,11 +180,11 @@ public:
   }
   [[nodiscard]] constexpr size_type max_size() const noexcept 
   {
-    return cap_minus_one_ + 1;
+    return cap_minus_one_ ? cap_minus_one_+ 1 : 0;
   }
   [[nodiscard]] constexpr float load_factor() const noexcept 
   {
-    return size_ ? (cap_minus_one_ + 1)/(float)size_ : 0;
+    return size_ ? size_/static_cast<float>(cap_minus_one_ + 1) : 0;
   }
   //constexpr const allocator_type& get_allocator() const noexcept 
   //{    
@@ -196,11 +199,33 @@ public:
     return static_cast<const hasher&>(my_hasher());
   }
  
-  iterator insert(value_type value) noexcept
+/* 
+  template<typename ...Args>
+  std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args);
+  template<typename ...Args>
+  std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args);
+  template<typename ...Args>
+  std::pair<iterator, bool> emplace_or_assign(const key_type & key, Args&&... args);
+  template<typename ...Args>
+  std::pair<iterator, bool> emplace_or_assign(key_type&& key, Args&&... args);
+  mapped_type& operator[](const key_type&& key) 
+  {
+    return this->try_emplace(key).first->second;
+  }
+  mapped_type& operator[](key_type&& key)
+  {
+    return this->try_emplace(key).first->second;
+  }
+  bool contains(const key_type& key) const noexcept;
+  std::optional<iterator> find(const key_type& key);
+  std::optional<const_iterator> find(const key_type& key)const;
+*/
+
+  iterator insert_or_assign(value_type value) noexcept
   {
     if (is_full()) {
       grow();
-      return insert(value);
+      return insert_or_assign(value);
     } 
     
     auto& key = value.first;
@@ -217,36 +242,12 @@ public:
       group_ref.md_[group_index] = partial_hash;
       new(std::addressof(group_ref.kv_[group_index])) value_type(value);
       ++size_;
-      
-      
-      std::cout << "================INSERT===========\n"; 
-      std::cout << "hash: " << std::bitset<64>(hash) << '\n';
-      std::cout << "table index: " << table_index << '\n';
-      std::cout << "group: " << group << '\n';
-      std::cout << "group index: " << group_index << '\n';      
-      std::cout << "metadata: " << std::bitset<8>(group_ref.md_[group_index]) << '\n'; 
-      std::cout << "key: " << group_ref.kv_[group_index].first << '\n';
-      std::cout << "value: " << group_ref.kv_[group_index].second << '\n';  
-      std::cout << "=================================\n"; 
-
-
       return iterator{&group_ref, table_index};
     }
     for (const auto& i : bit_mask) {
       if (compare_keys(group_ref.kv_[i].first, key)) {
-        group_ref.kv_[i].~value_type();
-        new(std::addressof(group_ref.kv_[i])) value_type(std::move(value));
-        
-        std::cout << "===============INSERT============\n"; 
-        std::cout << "hash: " << std::bitset<64>(hash) << '\n';
-        std::cout << "table index: " << (group * GroupSize + i) << '\n';      
-        std::cout << "group: " << group << '\n';
-        std::cout << "group index: " << i << '\n';      
-        std::cout << "metadata: " << std::bitset<8>(group_ref.md_[i]) << '\n'; 
-        std::cout << "key: " << group_ref.kv_[i].first << '\n';
-        std::cout << "value: " << group_ref.kv_[i].second << '\n';  
-        std::cout << "=================================\n"; 
-
+        group_ref.kv_[i].second.~mapped_type();
+        group_ref.kv_[i].second = std::forward<mapped_type>(value.second); 
         return iterator{std::addressof(group_ref), group * GroupSize + i};
       }
     }
@@ -256,33 +257,16 @@ public:
       group_ref.md_[group_index] = partial_hash;
       new(std::addressof(group_ref.kv_[group_index])) value_type(std::move(value));
       ++size_;
-
-      std::cout << "===============INSERT============\n"; 
-      std::cout << "hash: " << std::bitset<64>(hash) << '\n';
-      std::cout << "table index: " << (group * GroupSize + group_index) << '\n';      
-      std::cout << "group: " << group << '\n';
-      std::cout << "group index: " << group_index << '\n';      
-      std::cout << "metadata: " << std::bitset<8>(group_ref.md_[group_index]) << '\n'; 
-      std::cout << "key: " << group_ref.kv_[group_index].first << '\n';
-      std::cout << "value: " << group_ref.kv_[group_index].second << '\n';  
-      std::cout << "=================================\n"; 
-
       return iterator{std::addressof(group_ref), group * GroupSize + group_index};
     }
-
     grow();
-    return insert(value);  
+    return insert_or_assign(value);  
   }
 
   bool erase(const key_type& key) noexcept
   {
-    if (empty()) {
-      std::cout << "===========ERASE=FAILED==========\n";
-      std::cout << "empty() == true\n";
-      std::cout << "key: " << key << '\n';
-      std::cout << "=================================\n"; 
+    if (empty())
       return false;
-    }
          
     size_type hash{hash_key(key)};
     size_type table_index{calc_table_index(hash)};
@@ -292,50 +276,23 @@ public:
     group_t& group_ref = table_[group];
     simd_metadata simd(group_ref.md_);
     auto bit_mask = simd.Match(partial_hash);
-     
-    std::cout << "\nhash: " << std::bitset<64>(hash) << '\n';
-    std::cout << "table index: " << table_index << '\n';      
-    std::cout << "group: " << group << '\n';
-    std::cout << "partial hash: " << std::bitset<8>(partial_hash) << '\n';
-    
-    if (!bit_mask) { 
-      std::cout << "===========ERASE=FAILED==========\n";
-      std::cout << "no matched partial hashes\n";
-      std::cout << "key: " << key << '\n';
-      std::cout << "=================================\n"; 
+    if (!bit_mask) 
       return false;
-    }
     
     for (const auto& i : bit_mask) {
-        std::cout << "group index: " << i << ", key: " << group_ref.kv_[i].first << ", value: " << group_ref.kv_[i].second << '\n';
       if (compare_keys(group_ref.kv_[i].first, key)) {
-
-        std::cout << "===========ERASE=================\n"; 
-        std::cout << "metadata: " << std::bitset<8>(group_ref.md_[i]) << '\n'; 
-        std::cout << "key: " << group_ref.kv_[i].first << '\n';
-        std::cout << "value: " << group_ref.kv_[i].second << '\n';  
-        std::cout << "=================================\n"; 
-
-        group_ref.md_[i] = md_states::mdEmpty; //or just empty?
+        group_ref.md_[i] = md_states::mdEmpty;
         group_ref.kv_[i].~value_type();
         --size_;
         return true;
       }
     }
-    std::cout << "===========ERASE=FAILED==========\n";
-    std::cout << "matched partial hashes, but no equal key\n";
-    std::cout << "key: " << key << '\n';
-    std::cout << "=================================\n"; 
     return false;
   }
 
-  std::optional<iterator> find(const key_type& key) const noexcept
+  std::optional<iterator> find(const key_type& key) noexcept
   { 
     if (empty()) {
-      std::cout << "============FIND=FAILED==========\n";
-      std::cout << "empty() == true\n";
-      std::cout << "key: " << key << '\n';
-      std::cout << "=================================\n"; 
       return std::nullopt;
     }
          
@@ -347,36 +304,15 @@ public:
     group_t& group_ref = table_[group];
     simd_metadata simd(group_ref.md_);
     auto bit_mask = simd.Match(partial_hash);
-     
-    std::cout << "\nhash: " << std::bitset<64>(hash) << '\n';
-    std::cout << "table index: " << table_index << '\n';      
-    std::cout << "group: " << group << '\n';
-    std::cout << "partial hash: " << std::bitset<8>(partial_hash) << '\n';
-    
     if (!bit_mask) { 
-      std::cout << "===========FIND=FAILED==========\n";
-      std::cout << "no matched partial hashes\n";
-      std::cout << "key: " << key << '\n';
-      std::cout << "=================================\n"; 
       return std::nullopt;
     }
     
     for (const auto& i : bit_mask) {
       if (compare_keys(group_ref.kv_[i].first, key)) {
-
-        std::cout << "==========FIND=SUCCESS===========\n"; 
-        std::cout << "metadata: " << std::bitset<8>(group_ref.md_[i]) << '\n'; 
-        std::cout << "key: " << group_ref.kv_[i].first << '\n';
-        std::cout << "value: " << group_ref.kv_[i].second << '\n';  
-        std::cout << "=================================\n"; 
-
         return {iterator{std::addressof(group_ref), group * GroupSize + i}};
       }
     }
-    std::cout << "============FIND=FAILED==========\n";
-    std::cout << "matched partial hashes, but no equal key\n";
-    std::cout << "key: " << key << '\n';
-    std::cout << "=================================\n"; 
     return std::nullopt;
   }
 
@@ -417,7 +353,8 @@ protected:
       for (auto ptr{table_temp}, end{table_temp + old_cap/GroupSize}; ptr != end; ++ptr) {
         for (int i{0}; i < GroupSize; ++i) {
           if (isFull(ptr->md_[i])) {
-            insert(std::move(ptr->kv_[i]));
+            insert_or_assign(std::move(ptr->kv_[i]));
+            //should be regular insert? 
             ptr->kv_[i].~value_type();
           }
         } 
