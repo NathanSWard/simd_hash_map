@@ -16,8 +16,8 @@ struct avx2_metadata
   
   explicit avx2_metadata(const metadata* md) noexcept 
   {
-    group1_ = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(md));
-    group2_ = _mm256_stream_load_si256(reinterpret_cast<const __m256i*>(md + 32));
+    group1_ = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(md));
+    group2_ = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(md + 32));
   }
 
   [[nodiscard]] bit_mask Match(const metadata md) const noexcept 
