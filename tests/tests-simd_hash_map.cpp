@@ -25,7 +25,7 @@ TEST_CASE("Metadata Enum Comparisons") {
     REQUIRE(isDeleted(deleted_) == true);
     REQUIRE(isDeleted(full_) == false);
     REQUIRE(isDeleted(sentry_) == false);
-    REQUIRE(isDeleted(empty_) == false); 
+    REQUIRE(isDeleted(empty_) == false);
   }
   SECTION("isSenty") {
     REQUIRE(isSentry(sentry_) == true);
@@ -37,42 +37,32 @@ TEST_CASE("Metadata Enum Comparisons") {
     REQUIRE(isEmptyOrDeleted(empty_) == true);
     REQUIRE(isEmptyOrDeleted(deleted_) == true);
     REQUIRE(isEmptyOrDeleted(sentry_) == false);
-    REQUIRE(isEmptyOrDeleted(full_) == false); 
+    REQUIRE(isEmptyOrDeleted(full_) == false);
   }
 }
 
 TEST_CASE("mdkv_group") {
   SECTION("hasSentry") {
-    mdkv_group<simd_hash_table<int,int>::value_type> group;
+    mdkv_group<simd_hash_table<int, int>::value_type> group;
     REQUIRE(group.hasSentry() == true);
     SECTION("Changed First element") {
       group.md_[0] = 1;
       REQUIRE(group.hasSentry() == false);
-    }  
+    }
   }
 }
 
 TEST_CASE("simd_hash_table") {
-
   const simd_hash_table<int, int> default_table_int;
   const simd_hash_table<std::string, std::string> default_table_string;
 
   SECTION("hash_function") {
-    REQUIRE(std::hash<int>{}(42) == 
-            default_table_int.hash_function()(42));
+    REQUIRE(std::hash<int>{}(42) == default_table_int.hash_function()(42));
     REQUIRE(std::hash<std::string>{}("test") ==
             default_table_string.hash_function()("test"));
   }
-  SECTION("size") {
-    REQUIRE(default_table_int.size() == 0); 
-  }
-  SECTION("empty") {
-    REQUIRE(default_table_int.empty() == true);
-  }
-  SECTION("max_size") {
-    REQUIRE(default_table_int.max_size() == (64 * 4));
-  }
-  SECTION("load_factor") {
-    REQUIRE(default_table_int.load_factor() == 0.0f);
-  }
+  SECTION("size") { REQUIRE(default_table_int.size() == 0); }
+  SECTION("empty") { REQUIRE(default_table_int.empty() == true); }
+  SECTION("max_size") { REQUIRE(default_table_int.max_size() == (64 * 4)); }
+  SECTION("load_factor") { REQUIRE(default_table_int.load_factor() == 0.0f); }
 }
