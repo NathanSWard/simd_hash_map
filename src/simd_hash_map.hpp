@@ -405,7 +405,7 @@ class simd_hash_base : private Hash,
     simd_metadata simd(group_ref.md_);
     auto bit_mask = simd.Match(partial_hash);
 
-    if (!bit_mask) return false;
+    if (!bit_mask) return std::nullopt;
 
     for (const auto &i : bit_mask) {
       if (compare_keys(group_ref.kv_[i].first, key))
