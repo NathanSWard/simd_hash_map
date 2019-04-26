@@ -1,5 +1,8 @@
-#ifndef SIMD_METADATA_H
-#define SIMD_METADATA_H
+    
+//Copyright Nathan Ward 2019.
+
+#ifndef SIMD_METADATA_HPP
+#define SIMD_METADATA_HPP
 
 #include "metadata.hpp"
 
@@ -22,4 +25,4 @@ struct simd_metadata : public simd_type {
   static constexpr int size = 64;
 };
 
-#endif  // SIMD_METADATA_H
+#endif  // SIMD_METADATA_HPP
