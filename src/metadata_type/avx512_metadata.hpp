@@ -1,5 +1,7 @@
-#ifndef AVX512_METADATA_H
-#define AVX512_METADATA_H
+//Copyright Nathan Ward 2019.
+
+#ifndef AVX512_METADATA_HPP
+#define AVX512_METADATA_HPP
 
 #include <immintrin.h>
 #include <cstdint>
@@ -34,4 +36,4 @@ struct avx512_metadata {
 
 };  // avx512_metadata
 
-#endif  // AVX512_METADATA_H
+#endif  // AVX512_METADATA_HPP
