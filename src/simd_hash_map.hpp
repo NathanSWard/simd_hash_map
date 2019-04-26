@@ -1,3 +1,12 @@
+//Copyright Nathan Ward 2019..
+//Distributed under the Boost Software License, Version 1.0.
+//(See http://www.boost.org/LICENSE_1_0.txt)
+
+/* This class is inspired by google's flash_hash_map and skarupke's hash maps
+ * see: github.com/abseil/abseil-cpp/absl/container
+ *      github.com/skarupke/flat_hash_map
+ */ 
+
 #ifndef SIMD_HASH_MAP_HPP
 #define SIMD_HASH_MAP_HPP
 
