@@ -1,6 +1,4 @@
-//Copyright Nathan Ward 2019..
-//Distributed under the Boost Software License, Version 1.0.
-//(See http://www.boost.org/LICENSE_1_0.txt)
+//Copyright Nathan Ward 2019.
 
 /* This class is inspired by google's flash_hash_map and skarupke's hash maps
  * see: github.com/abseil/abseil-cpp/absl/container
