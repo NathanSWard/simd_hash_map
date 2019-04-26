@@ -1,3 +1,5 @@
+//Copyright Nathan Ward 2019.
+
 #ifndef METADATA_HPP
 #define METADATA_HPP
 
