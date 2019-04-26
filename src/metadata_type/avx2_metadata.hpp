@@ -1,5 +1,8 @@
-#ifndef AVX2_METADATA_H
-#define AVX2_METADATA_H
+    
+//Copyright Nathan Ward 2019.
+
+#ifndef AVX2_METADATA_HPP
+#define AVX2_METADATA_HPP
 
 #include <immintrin.h>
 #include <cstdint>
@@ -35,4 +38,4 @@ struct avx2_metadata {
   __m256i group2_;
 };
 
-#endif  // AVX2_METADATA_H
+#endif  // AVX2_METADATA_HPP
