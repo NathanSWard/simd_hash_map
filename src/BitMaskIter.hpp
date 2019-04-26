@@ -5,8 +5,8 @@
  * see: github.com/abseil/abseil-cpp/absl/container
  */ 
 
-#ifndef BIT_MASK_ITER_HPP
-#define BIT_MASK_ITER_HPP
+#ifndef BIT_MASK_ITER_64_HPP
+#define BIT_MASK_ITER_64_HPP
 
 #include <cstdint>
 #include <utility>
@@ -88,4 +88,4 @@ class BitMaskIter64 {
   uint64_t bits_{0};
 };
 
-#endif
+#endif //BIT_MASK_ITER_64_HPP
