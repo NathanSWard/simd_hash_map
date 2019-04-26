@@ -1,4 +1,4 @@
-#ifndef SIMD_HASH_MAP_HP
+#ifndef SIMD_HASH_MAP_HPP
 #define SIMD_HASH_MAP_HPP
 
 #include "simd_metadata.hpp"
