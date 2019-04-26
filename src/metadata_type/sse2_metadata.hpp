@@ -1,5 +1,12 @@
-#ifndef SSE2_METADATA_H
-#define SSE2_METADATA_H
+    
+//Copyright Nathan Ward 2019.
+
+/* This class is inspired by google's flash_hash_map
+ * see: github.com/abseil/abseil-cpp/absl/container
+ */ 
+
+#ifndef SSE2_METADATA_HPP
+#define SSE2_METADATA_HPP
 
 #include <immintrin.h>
 #include <cstdint>
@@ -44,4 +51,4 @@ struct sse2_metadata {
   __m128i group4_;
 };
 
-#endif
+#endif //SSE2_METADATA_HPP
