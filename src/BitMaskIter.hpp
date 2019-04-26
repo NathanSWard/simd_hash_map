@@ -1,3 +1,10 @@
+    
+//Copyright Nathan Ward 2019.
+
+/* This class is inspired by google's flash_hash_map's BitMask
+ * see: github.com/abseil/abseil-cpp/absl/container
+ */ 
+
 #ifndef BIT_MASK_ITER_HPP
 #define BIT_MASK_ITER_HPP
 
