@@ -24,14 +24,15 @@ class BitMaskIter64 {
   }
 
   [[nodiscard]] constexpr explicit operator bool() const noexcept {
-    return bits_;
+    return bits_ != 0x0000000000000000;
   }
 
+ private:
   [[nodiscard]] constexpr auto countTrailingZeros() const noexcept {
     auto bits = bits_;
-    auto count = 64;
+    auto count = 63;
     bits &= ~bits + 1;  // bit binary search
-    if (bits) --count;
+    // if (bits) --count;
     if (bits & 0x00000000FFFFFFFF) count -= 32;
     if (bits & 0x0000FFFF0000FFFF) count -= 16;
     if (bits & 0x00FF00FF00FF00FF) count -= 8;
@@ -41,8 +42,9 @@ class BitMaskIter64 {
     return count;
   }
 
+ public:
   [[nodiscard]] constexpr auto operator*() const noexcept {
-    if (!bits_) return -1;
+    if (bits_ == 0) return -1;
     return countTrailingZeros();
   }
 
@@ -70,16 +72,9 @@ class BitMaskIter64 {
     return (bits_ & 1);
   }
 
-  [[nodiscard]] /*constexpr*/ auto getFirstUnsetBit() const noexcept {
-    auto bits = bits_;
-    if (bits == 0xFFFFFFFFFFFFFFFF) return -1;
-
-    auto count = 0;
-    while (bits & 1) {
-      bits >>= 1;
-      ++count;
-    }
-    return count;
+  [[nodiscard]] constexpr auto getFirstSetBit() const noexcept {
+    if (bits_ == 0) return -1;
+    return countTrailingZeros();
   }
 
  public:

@@ -17,7 +17,7 @@
 #endif
 
 struct simd_metadata : public simd_type {
-  explicit simd_metadata(metadata* md) : simd_type(md) {}
+  explicit simd_metadata(metadata const* const& md) : simd_type(md) {}
 
   static constexpr int size = 64;
 };

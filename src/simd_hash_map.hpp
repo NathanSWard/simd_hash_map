@@ -1,3 +1,6 @@
+#ifndef SIMD_HASH_MAP_HP
+#define SIMD_HASH_MAP_HPP
+
 #include "simd_metadata.hpp"
 
 #include <cstdint>
@@ -23,11 +26,11 @@ next_multiple_of(std::size_t n) noexcept {
 
 template <typename T, std::size_t Size>
 struct bucket_group {
-  alignas(64) metadata md_[Size];
+  metadata md_[Size];
   T kv_[Size];
 
   static auto empty_group() noexcept {
-    static /*constexpr*/ metadata empty_md[]{
+    static constexpr metadata empty_md[]{
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
@@ -81,9 +84,9 @@ class simd_hash_base : private Hash,
 
     constexpr Iterator operator++() noexcept {
       do {
-        if (index_ % GroupSize == 0) --group_;
+        if ((index_ % GroupSize) == 0) --group_;
         if (index_-- == 0) break;
-      } while (!isFull(group_->md_[index_ % GroupSize]));
+      } while (isEmpty((group_->md_[index_ % GroupSize])));
       return *this;
     }
 
@@ -127,13 +130,13 @@ class simd_hash_base : private Hash,
 
   [[nodiscard]] constexpr iterator begin() noexcept {
     size_type cap = cap_minus_one_ ? cap_minus_one_ + 1 : 0;
-    if (cap) return ++iterator{std::addressof(table_[(cap / GroupSize)]), cap};
+    if (cap) return ++iterator{table_ + (cap / GroupSize), cap};
     return end();
   }
 
   [[nodiscard]] constexpr iterator begin() const noexcept {
     size_type cap = cap_minus_one_ ? cap_minus_one_ + 1 : 0;
-    if (cap) return ++iterator{std::addressof(table_[(cap / GroupSize)]), cap};
+    if (cap) return ++iterator{table_ + (cap / GroupSize), cap};
     return end();
   }
 
@@ -189,32 +192,37 @@ class simd_hash_base : private Hash,
     metadata partial_hash{calc_partial_hash(hash)};
 
     group_t &group_ref = table_[group];
-    simd_metadata simd(group_ref.md_);
-    auto bit_mask = simd.Match(partial_hash);
-    if (!bit_mask) {
+
+    if (isEmpty(group_ref.md_[group_index])) {
       group_ref.md_[group_index] = partial_hash;
       new (std::addressof(group_ref.kv_[group_index]))
           value_type{std::piecewise_construct, std::forward_as_tuple(key),
                      std::forward_as_tuple(std::forward<Args>(args)...)};
       ++size_;
-      return {iterator{&group_ref, table_index}, true};
+      return {iterator{std::addressof(group_ref), table_index}, true};
     }
 
-    for (const auto &i : bit_mask) {
-      if (compare_keys(group_ref.kv_[i].first, key))
-        return {iterator{std::addressof(group_ref), group * GroupSize + i},
-                false};
+    simd_metadata simd(group_ref.md_);
+    auto bit_mask = simd.Match(partial_hash);
+
+    if (bit_mask) {
+      for (const auto &i : bit_mask) {
+        if (compare_keys(group_ref.kv_[i].first, key)) {
+          return {iterator{std::addressof(group_ref), group * GroupSize + i},
+                  false};
+        }
+      }
     }
 
-    group_index = bit_mask.getFirstUnsetBit();
-    if (group_index != -1) {
-      group_ref.md_[group_index] = partial_hash;
-      new (std::addressof(group_ref.kv_[group_index]))
+    auto bucket_index = simd.getFirstOpenBucket();
+    if (bucket_index != -1) {
+      group_ref.md_[bucket_index] = partial_hash;
+      new (std::addressof(group_ref.kv_[bucket_index]))
           value_type{std::piecewise_construct, std::forward_as_tuple(key),
                      std::forward_as_tuple(std::forward<Args>(args)...)};
       ++size_;
       return {
-          iterator{std::addressof(group_ref), group * GroupSize + group_index},
+          iterator{std::addressof(group_ref), group * GroupSize + bucket_index},
           true};
     }
 
@@ -236,32 +244,37 @@ class simd_hash_base : private Hash,
     metadata partial_hash{calc_partial_hash(hash)};
 
     group_t &group_ref = table_[group];
+
+    if (isEmpty(group_ref.md_[group_index])) {
+      group_ref.md_[group_index] = partial_hash;
+      new (std::addressof(group_ref.kv_[group_index])) value_type{
+          std::piecewise_construct, std::forward_as_tuple(std::move(key)),
+          std::forward_as_tuple(std::forward<Args>(args)...)};
+      ++size_;
+      return {iterator{std::addressof(group_ref), table_index}, true};
+    }
+
     simd_metadata simd(group_ref.md_);
     auto bit_mask = simd.Match(partial_hash);
-    if (!bit_mask) {
-      group_ref.md_[group_index] = partial_hash;
-      new (std::addressof(group_ref.kv_[group_index])) value_type(
-          std::piecewise_construct, std::forward_as_tuple(std::move(key)),
-          std::forward_as_tuple(std::forward<Args>(args)...));
-      ++size_;
-      return {iterator{&group_ref, table_index}, true};
+
+    if (bit_mask) {
+      for (const auto &i : bit_mask) {
+        if (compare_keys(group_ref.kv_[i].first, key)) {
+          return {iterator{std::addressof(group_ref), group * GroupSize + i},
+                  false};
+        }
+      }
     }
 
-    for (const auto &i : bit_mask) {
-      if (compare_keys(group_ref.kv_[i].first, key))
-        return {iterator{std::addressof(group_ref), group * GroupSize + i},
-                false};
-    }
-
-    group_index = bit_mask.getFirstUnsetBit();
-    if (group_index != -1) {
-      group_ref.md_[group_index] = partial_hash;
-      new (std::addressof(group_ref.kv_[group_index])) value_type(
+    auto bucket_index = simd.getFirstOpenBucket();
+    if (bucket_index != -1) {
+      group_ref.md_[bucket_index] = partial_hash;
+      new (std::addressof(group_ref.kv_[bucket_index])) value_type{
           std::piecewise_construct, std::forward_as_tuple(std::move(key)),
-          std::forward_as_tuple(std::forward<Args>(args)...));
+          std::forward_as_tuple(std::forward<Args>(args)...)};
       ++size_;
       return {
-          iterator{std::addressof(group_ref), group * GroupSize + group_index},
+          iterator{std::addressof(group_ref), group * GroupSize + bucket_index},
           true};
     }
 
@@ -284,36 +297,42 @@ class simd_hash_base : private Hash,
     metadata partial_hash{calc_partial_hash(hash)};
 
     group_t &group_ref = table_[group];
-    simd_metadata simd(group_ref.md_);
-    auto bit_mask = simd.Match(partial_hash);
-    if (!bit_mask) {
+
+    if (isEmpty(group_ref.md_[group_index])) {
       group_ref.md_[group_index] = partial_hash;
       new (std::addressof(group_ref.kv_[group_index]))
-          value_type(std::piecewise_construct, std::forward_as_tuple(key),
-                     std::forward_as_tuple(std::forward<Args>(args)...));
+          value_type{std::piecewise_construct, std::forward_as_tuple(key),
+                     std::forward_as_tuple(std::forward<Args>(args)...)};
       ++size_;
-      return {iterator{&group_ref, table_index}, true};
+      return {iterator{std::addressof(group_ref), table_index}, true};
     }
-    for (const auto &i : bit_mask) {
-      if (compare_keys(group_ref.kv_[i].first, key)) {
-        group_ref.kv_[i].second =
-            std::forward<mapped_type>(std::forward<Args>(args)...);
-        return {iterator{std::addressof(group_ref), group * GroupSize + i},
-                false};
+
+    simd_metadata simd(group_ref.md_);
+    auto bit_mask = simd.Match(partial_hash);
+
+    if (bit_mask) {
+      for (const auto &i : bit_mask) {
+        if (compare_keys(group_ref.kv_[i].first, key)) {
+          group_ref.kv_[i] =
+              std::move(mapped_type{std::forward<Args>(args)...});
+          return {iterator{std::addressof(group_ref), group * GroupSize + i},
+                  false};
+        }
       }
     }
 
-    group_index = bit_mask.getFirstUnsetBit();
-    if (group_index != -1) {
-      group_ref.md_[group_index] = partial_hash;
-      new (std::addressof(group_ref.kv_[group_index]))
-          value_type(std::piecewise_construct, std::forward_as_tuple(key),
-                     std::forward_as_tuple(std::forward<Args>(args)...));
+    auto bucket_index = simd.getFirstOpenBucket();
+    if (bucket_index != -1) {
+      group_ref.md_[bucket_index] = partial_hash;
+      new (std::addressof(group_ref.kv_[bucket_index]))
+          value_type{std::piecewise_construct, std::forward_as_tuple(key),
+                     std::forward_as_tuple(std::forward<Args>(args)...)};
       ++size_;
       return {
-          iterator{std::addressof(group_ref), group * GroupSize + group_index},
+          iterator{std::addressof(group_ref), group * GroupSize + bucket_index},
           true};
     }
+
     grow();
     return emplace_or_assign(key, std::forward<Args>(args)...);
   }
@@ -332,48 +351,54 @@ class simd_hash_base : private Hash,
     metadata partial_hash{calc_partial_hash(hash)};
 
     group_t &group_ref = table_[group];
+
+    if (isEmpty(group_ref.md_[group_index])) {
+      group_ref.md_[group_index] = partial_hash;
+      new (std::addressof(group_ref.kv_[group_index]))
+          value_type{std::piecewise_construct, std::forward_as_tuple(key),
+                     std::forward_as_tuple(std::forward<Args>(args)...)};
+      ++size_;
+      return {iterator{std::addressof(group_ref), table_index}, true};
+    }
+
     simd_metadata simd(group_ref.md_);
     auto bit_mask = simd.Match(partial_hash);
-    if (!bit_mask) {
-      group_ref.md_[group_index] = partial_hash;
-      new (std::addressof(group_ref.kv_[group_index])) value_type(
-          std::piecewise_construct, std::forward_as_tuple(std::move(key)),
-          std::forward_as_tuple(std::forward<Args>(args)...));
-      ++size_;
-      return {iterator{&group_ref, table_index}, true};
-    }
-    for (const auto &i : bit_mask) {
-      if (compare_keys(group_ref.kv_[i].first, key)) {
-        group_ref.kv_[i].second =
-            std::forward<mapped_type>(std::forward<Args>(args)...);
-        return {iterator{std::addressof(group_ref), group * GroupSize + i},
-                false};
+
+    if (bit_mask) {
+      for (const auto &i : bit_mask) {
+        if (compare_keys(group_ref.kv_[i].first, key)) {
+          group_ref.kv_[i] =
+              std::move(mapped_type{std::forward<Args>(args)...});
+          return {iterator{std::addressof(group_ref), group * GroupSize + i},
+                  false};
+        }
       }
     }
 
-    group_index = bit_mask.getFirstUnsetBit();
-    if (group_index != -1) {
-      group_ref.md_[group_index] = partial_hash;
-      new (std::addressof(group_ref.kv_[group_index])) value_type(
-          std::piecewise_construct, std::forward_as_tuple(std::move(key)),
-          std::forward_as_tuple(std::forward<Args>(args)...));
+    auto bucket_index = simd.getFirstOpenBucket();
+    if (bucket_index != -1) {
+      group_ref.md_[bucket_index] = partial_hash;
+      new (std::addressof(group_ref.kv_[bucket_index]))
+          value_type{std::piecewise_construct, std::forward_as_tuple(key),
+                     std::forward_as_tuple(std::forward<Args>(args)...)};
       ++size_;
       return {
-          iterator{std::addressof(group_ref), group * GroupSize + group_index},
+          iterator{std::addressof(group_ref), group * GroupSize + bucket_index},
           true};
     }
+
     grow();
     return emplace_or_assign(std::move(key), std::forward<Args>(args)...);
   }
 
-  mapped_type &operator[](const key_type &&key) {
+  [[nodiscard]] mapped_type &operator[](const key_type &&key) {
     return this->try_emplace(key).first->second;
   }
-  mapped_type &operator[](key_type &&key) {
+  [[nodiscard]] mapped_type &operator[](key_type &&key) {
     return this->try_emplace(key).first->second;
   }
 
-  bool contains(const key_type &key) const noexcept {
+  [[nodiscard]] bool contains(const key_type &key) const noexcept {
     if (empty()) return false;
 
     size_type hash{hash_key(key)};
@@ -393,13 +418,12 @@ class simd_hash_base : private Hash,
     return false;
   }
 
-  std::optional<iterator> find(const key_type &key) {
+  [[nodiscard]] std::optional<iterator> find(const key_type &key) {
     if (empty()) return std::nullopt;
 
     size_type hash{hash_key(key)};
-    size_type table_index{calc_table_index(hash)};
-    size_type group{calc_group(table_index)};
     metadata partial_hash{calc_partial_hash(hash)};
+    size_type group{calc_group(calc_table_index(hash))};
 
     group_t &group_ref = table_[group];
     simd_metadata simd(group_ref.md_);
@@ -415,19 +439,18 @@ class simd_hash_base : private Hash,
     return std::nullopt;
   }
 
-  std::optional<const_iterator> find(const key_type &key) const {
+  [[nodiscard]] std::optional<const_iterator> find(const key_type &key) const {
     if (empty()) return std::nullopt;
 
     size_type hash{hash_key(key)};
-    size_type table_index{calc_table_index(hash)};
-    size_type group{calc_group(table_index)};
     metadata partial_hash{calc_partial_hash(hash)};
+    size_type group{calc_group(calc_table_index(hash))};
 
     group_t &group_ref = table_[group];
     simd_metadata simd(group_ref.md_);
     auto bit_mask = simd.Match(partial_hash);
 
-    if (!bit_mask) return false;
+    if (!bit_mask) return std::nullopt;
 
     for (const auto &i : bit_mask) {
       if (compare_keys(group_ref.kv_[i].first, key))
@@ -447,13 +470,13 @@ class simd_hash_base : private Hash,
     if (empty()) return false;
 
     size_type hash{hash_key(key)};
-    size_type table_index{calc_table_index(hash)};
-    size_type group{calc_group(table_index)};
+    size_type group{calc_group(calc_table_index(hash))};
     metadata partial_hash{calc_partial_hash(hash)};
 
     group_t &group_ref = table_[group];
+
     simd_metadata simd(group_ref.md_);
-    auto bit_mask = simd.Match(partial_hash);
+    auto bit_mask{simd.Match(partial_hash)};
     if (!bit_mask) return false;
 
     for (const auto &i : bit_mask) {
@@ -469,6 +492,7 @@ class simd_hash_base : private Hash,
 
   void clear() noexcept {
     if (table_ == group_t::empty_group()) return;
+
     auto num_groups{(cap_minus_one_ + 1) / GroupSize};
     for (auto ptr{table_}, end{table_ + num_groups}; ptr != end; ++ptr) {
       for (auto i{0}; i < GroupSize; ++i) {
@@ -482,36 +506,46 @@ class simd_hash_base : private Hash,
   }
 
  protected:
-  void grow() {
-    auto cap{get_next_cap(cap_minus_one_++)};
-    rehash(cap);
-  }
+  constexpr void grow() { rehash(get_next_cap(cap_minus_one_)); }
 
-  void rehash(size_type cap_temp) {
-    auto num_groups{cap_temp / GroupSize};
-    auto table_temp{reinterpret_cast<group_pointer>(
-        std::malloc(sizeof(group_t) * num_groups))};
+  constexpr void rehash(size_type num_items) {
+    if (num_items == 0) {
+      clear();
+      return;
+    }
+
+    if (num_items == cap_minus_one_ + 1) return;
+
+    auto num_groups{num_items / GroupSize};
+    if (num_groups % GroupSize) ++num_groups;
+
+    auto memory = std::malloc(sizeof(group_t) * num_groups);
+    auto table_temp{reinterpret_cast<group_pointer>(memory)};
+
     for (auto ptr{table_temp}, end{table_temp + num_groups}; ptr != end; ++ptr)
       ptr->reset_metadata();
 
     std::swap(table_, table_temp);
-    std::swap(cap_minus_one_, cap_temp);
+    std::swap(cap_minus_one_, num_items);
     --cap_minus_one_;
     size_ = 0;
 
-    if (table_temp != group_t::empty_group()) {
-      for (auto ptr{table_temp}, end{table_temp + cap_temp / GroupSize};
-           ptr != end; ++ptr) {
-        for (int i{0}; i < GroupSize; ++i) {
-          if (isFull(ptr->md_[i])) {
-            try_emplace(std::forward<key_type>(ptr->kv_[i].first),
-                        std::forward<mapped_type>(ptr->kv_[i].second));
-            ptr->kv_[i].~value_type();
-          }
+    if (num_items) ++num_items;
+    size_type old_num_groups = num_items / GroupSize;
+    if (num_items % GroupSize) ++old_num_groups;
+
+    for (auto ptr{table_temp}, end{table_temp + old_num_groups}; ptr != end;
+         ++ptr) {
+      for (int i{0}; i < GroupSize; ++i) {
+        if (isFull(ptr->md_[i])) {
+          auto key_temp = ptr->kv_[i].first;
+          try_emplace(std::move(ptr->kv_[i].first),
+                      std::move(ptr->kv_[i].second));
+          ptr->kv_[i].~value_type();
         }
       }
-      deallocate_groups(table_temp);
     }
+    deallocate_groups(table_temp);
   }
 
   constexpr void deallocate_groups(group_pointer ptr) {
@@ -519,8 +553,7 @@ class simd_hash_base : private Hash,
     std::free(ptr);
   }
 
-  // below should be [[nodiscard]], though they're internal
-  bool is_full() const noexcept {
+  constexpr bool is_full() const noexcept {
     if (cap_minus_one_) return size_ == cap_minus_one_ + 1;
     return true;
   }
@@ -535,20 +568,20 @@ class simd_hash_base : private Hash,
     return my_hasher()(key);
   }
 
-  constexpr metadata calc_partial_hash(size_type hash) const noexcept {
+  constexpr metadata calc_partial_hash(const size_type hash) const noexcept {
     return (metadata)(hash & 0x7F);
   }
 
-  constexpr size_type calc_group(size_type index) const noexcept {
+  constexpr size_type calc_group(const size_type index) const noexcept {
     return index / GroupSize;
   }
 
-  constexpr size_type calc_table_index(size_type hash) const noexcept {
+  constexpr size_type calc_table_index(const size_type hash) const noexcept {
     return hash & cap_minus_one_;
   }
 
-  constexpr size_type calc_group_index(const size_type &index,
-                                       const size_type &group) const noexcept {
+  constexpr size_type calc_group_index(const size_type index,
+                                       const size_type group) const noexcept {
     return (index - group * GroupSize);
   }
 
@@ -571,9 +604,12 @@ class simd_hash_base : private Hash,
   size_type cap_minus_one_{0};
   group_pointer table_{group_t::empty_group()};
   std::tuple<hasher, key_equal> settings_{hasher{}, key_equal{}};
-};
+
+}; //simd_hash_base
 
 template <typename Key, typename T, typename Hash = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>>
 class simd_hash_map
     : public simd_hash_base<Key, T, Hash, KeyEqual, simd_metadata::size, 0> {};
+
+#endif //SIMD_HASH_MAP_HPP
