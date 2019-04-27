@@ -39,7 +39,7 @@
   * `end()` and `cend()`
     * Returns an iterator to the end.
 * Modifiers
-  * `template<typename Args...>
+  * `template<typename Args...>`
   * `try_emplace(key_type, Args &&...)`
     * return : `std::pair<iterator, bool>`
       * Iterator to key/value pair.
