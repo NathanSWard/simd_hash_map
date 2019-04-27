@@ -19,7 +19,7 @@
 * Member Types
   * `key_type`        : `Key`
   * `mapped_type`     : `T`
-  * `value_type`      : `std::pair<const Key, T>
+  * `value_type`      : `std::pair<const Key, T>`
   * `size_type`       : `std::size_t`
   * `difference_type` : `std::ptrdiff_t`
   * `hasher`          : `Hash`
