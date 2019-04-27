@@ -98,7 +98,7 @@
 __Major Differences between simd_hash_map and std::unordered_map__
 * To optimize value semantics and reduce unnecessary moves and copies, the two "inserting" functions take a key and forwarded value arguments separately. If value_type is emplaced, it is constructed as `value_type {std::piecewise_construct, std::forward_as_tuple(key_type), std::forward_as_tuple(std::forward<Args>(args)...)};`. If just the mapped_type is inserted due to the key already existing, the following occurs: `old_mapped_value = std::move(mapped_type{std::forward<Args>(args)...});`.
 * Due to the nature of how this hash table deals with collisions, the user cannot determine the load factor as when the hash table will grow in size. 
-* `find(key_type)` returns an `std::optional<iterator>`. This is because I try to practice declarative programming, and returning an `std::optional` is IMO more delcarative than an just an iterator which could point to the end of the map.
+* `find(key_type)` returns an `std::optional<iterator>`. This is because I try to practice declarative programming, and returning an `std::optional` is IMO more delcarative than just an iterator which could point to the end of the map.
 * As of 26 April 2019, this container does not take custom allocators, however, this feature will be implemented in the future.
 
 
