@@ -11,7 +11,7 @@
   * <https://clang.llvm.org/docs/ClangCommandLineReference.html#x86>
 
 ## API as of 26 April 2019 ##
-* Template Parameter
+* Template Parameters
   * `class Key`
   * `class T`
   * `class Hash = std::hash<Key>`
