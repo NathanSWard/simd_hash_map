@@ -35,9 +35,9 @@
   * `(destructor)`
 * Iterators
   * `begin()` and `cbegin()`
-   * Returns an iterator to the beginning.
+    * Returns an iterator to the beginning.
   * `end()` and `cend()`
-   * Returns an iterator to the end.
+    * Returns an iterator to the end.
 * Modifiers
   * `template<typename Args...>
   * `try_emplace(key_type, Args &&...)`
