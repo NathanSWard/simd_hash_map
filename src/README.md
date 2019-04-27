@@ -43,21 +43,21 @@
   * `try_emplace(key_type, Args &&...)`
     * return : `std::pair<iterator, bool>`
       * Iterator to key/value pair.
-      * True: Emplaced with given Args.
-      * False: Key already found in map, nothing occured.
+      * _True_: Emplaced with given Args.
+      * _False_: Key already found in map, nothing occured.
     * Try to emplace key/value into the map.
     * If key is already present, nothing occurs
   * `template<typename Args...>`
   * `emplace_or_assign(key_type, Args &&...)`
     * return : `std::pair<iterator, bool>`
       * Iterator to key/value pair.
-      * True: Emplaced with given key and Args.
-      * False: Key already found in map, new value assigned.
+      * _True_: Emplaced with given key and Args.
+      * _False_: Key already found in map, new value assigned.
     * Emplace key/value into the map.
   * `erase(key_type)`
     * return : `bool`
-      * True: Key found, value_type erased
-      * False: Key not found, nothing occured
+      * _True_: Key found, value_type erased
+      * _False_: Key not found, nothing occured
     * Erase key/value with given key.
 * Lookup
   * `find(key_type)`
@@ -67,8 +67,8 @@
     * find key/value pair with given key
   * `contains(key_type)`
     * return : `bool`
-      * True: Map conatins key.
-      * False: Map does not contain key.
+      * _True_: Map conatins key.
+      * _False_: Map does not contain key.
     * Check if map conatins key/value pair with given key.
   * `clear()`
     * return : `void`
