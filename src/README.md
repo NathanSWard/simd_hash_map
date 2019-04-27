@@ -15,7 +15,7 @@
   * `class Key`
   * `class T`
   * `class Hash = std::hash<Key>`
-  * `class KeyEqual = std::equal_to<Key>
+  * `class KeyEqual = std::equal_to<Key>`
 * Member Types
   * `key_type`        : `Key`
   * `mapped_type`     : `T`
