@@ -47,7 +47,7 @@
       * False: Key already found in map, nothing occured.
     * Try to emplace key/value into the map.
     * If key is already present, nothing occurs
-  * `templace<typename Args...>
+  * `template<typename Args...>`
   * `emplace_or_assign(key_type, Args &&...)`
     * return : `std::pair<iterator, bool>`
       * Iterator to key/value pair.
