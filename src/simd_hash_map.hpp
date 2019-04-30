@@ -21,7 +21,12 @@
 #include <utility>
 
 static constexpr std::size_t get_next_cap(std::size_t cap_minus_one) noexcept {
-  if (cap_minus_one) return (++cap_minus_one << 1);
+  if (cap_minus_one) { 
+    if (cap_minus_one < std::numeric_limits<std::uint32_t>::max())
+      return (++cap_minus_one << 2);
+    else
+      return (++cap_minus_one << 1);
+  }
   return 128;
 }
 
@@ -37,7 +42,7 @@ struct bucket_group {
   T kv_[Size];
 
   static auto empty_group() noexcept {
-    static constexpr metadata empty_md[]{
+    static metadata empty_md[]{
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
@@ -46,7 +51,7 @@ struct bucket_group {
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty,
         mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty, mdEmpty};
-    return reinterpret_cast<bucket_group *>(&empty_md);
+    return reinterpret_cast<bucket_group*>(&empty_md);
   }
 
   constexpr void reset_metadata() noexcept {
@@ -169,8 +174,8 @@ class simd_hash_base : private Hash,
     return cap_minus_one_ ? cap_minus_one_ + 1 : 0;
   }
 
-  [[nodiscard]] constexpr float load_factor() const noexcept {
-    return size_ ? (size_ / static_cast<float>(cap_minus_one_ + 1)) : 0;
+  [[nodiscard]] constexpr double load_factor() const noexcept {
+    return size_ ? ((double)size_ / (cap_minus_one_ + 1)) : 0;
   }
 
   // constexpr const allocator_type& get_allocator() const noexcept
@@ -537,18 +542,20 @@ class simd_hash_base : private Hash,
     --cap_minus_one_;
     size_ = 0;
 
-    if (num_items) ++num_items;
-    size_type old_num_groups = num_items / GroupSize;
-    if (num_items % GroupSize) ++old_num_groups;
+    if (table_temp != group_t::empty_group()) {
+      if (num_items) ++num_items;
+      size_type old_num_groups = num_items / GroupSize;
+      if (num_items % GroupSize) ++old_num_groups;
 
-    for (auto ptr{table_temp}, end{table_temp + old_num_groups}; ptr != end;
-         ++ptr) {
-      for (int i{0}; i < GroupSize; ++i) {
-        if (isFull(ptr->md_[i])) {
-          auto key_temp = ptr->kv_[i].first;
-          try_emplace(std::move(ptr->kv_[i].first),
-                      std::move(ptr->kv_[i].second));
-          ptr->kv_[i].~value_type();
+      for (auto ptr{table_temp}, end{table_temp + old_num_groups}; ptr != end;
+           ++ptr) {
+        for (int i{0}; i < GroupSize; ++i) {
+          if (isFull(ptr->md_[i])) {
+            auto key_temp = ptr->kv_[i].first;
+            try_emplace(std::move(ptr->kv_[i].first),
+                        std::move(ptr->kv_[i].second));
+            ptr->kv_[i].~value_type();
+          }
         }
       }
     }
